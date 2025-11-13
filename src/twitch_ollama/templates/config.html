@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Config{% endblock %}
+{% block content %}
+<h1>Configuration</h1>
+<form id="configForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>System Prompt:<br><textarea name="system_prompt" rows="6" cols="80">{{ config.get("system_prompt", "") }}</textarea></label><br>
+    <label>Model:
+        <select name="model">
+            {% for m in models %}
+                <option value="{{ m }}" {% if config.get("model") == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+        </select>
+    </label><br>
+    <label>Temperature: <input type="number" name="temperature" step="0.1" min="0" max="2" value="{{ config.get("temperature", 0.7) }}"></label><br>
+    <label>Max Tokens: <input type="number" name="max_tokens" min="1" max="4096" value="{{ config.get("max_tokens", 512) }}"></label><br>
+    <label>Context Window (messages): <input type="number" name="context_window" min="1" max="1000" value="{{ config.get("context_window", 50) }}"></label><br>
+    <button type="submit">Save</button>
+</form>
+<script>
+document.getElementById("configForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const res = await fetch("/admin/config", {
+        method: "POST",
+        body: formData
+    });
+    if (res.ok) {
+        alert("Saved");
+    } else {
+        alert("Error saving config");
+    }
+});
+</script>
+{% endblock %}

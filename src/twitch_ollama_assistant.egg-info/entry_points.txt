@@ -1,0 +1,2 @@
+[console_scripts]
+twitch-ollama = twitch_ollama.main:main

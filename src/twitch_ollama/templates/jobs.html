@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Jobs - Twitch Ollama Assistant{% endblock %}
+
+{% block content %}
+<h1>Recent Jobs</h1>
+
+<!-- Jobs List -->
+<div id="jobsContainer">
+    <div style="text-align: center; padding: 2rem;">
+        <p>Loading jobs...</p>
+    </div>
+</div>
+
+<script>
+// Load jobs function
+async function loadJobs() {
+    try {
+        const response = await fetch('/api/jobs?limit=50');
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayJobs(data);
+        } else {
+            document.getElementById('jobsContainer').innerHTML = 
+                `<div style="text-align: center; color: red; padding: 2rem;">
+                    Error loading jobs: ${data.detail || 'Unknown error'}
+                </div>`;
+        }
+    } catch (error) {
+        document.getElementById('jobsContainer').innerHTML = 
+            `<div style="text-align: center; color: red; padding: 2rem;">
+                Error loading jobs: ${error.message}
+            </div>`;
+    }
+}
+
+// Display jobs function
+function displayJobs(data) {
+    if (!data.jobs || data.jobs.length === 0) {
+        document.getElementById('jobsContainer').innerHTML = 
+            '<div style="text-align: center; padding: 2rem;">No jobs found.</div>';
+        return;
+    }
+    
+    let html = '<table style="width: 100%; border-collapse: collapse;">';
+    html += '<thead><tr style="border-bottom: 2px solid #ccc;">';
+    html += '<th style="text-align: left; padding: 0.5rem;">ID</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Type</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Status</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Input</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Output</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Duration</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Timestamp</th>';
+    html += '</tr></thead><tbody>';
+    
+    data.jobs.forEach(job => {
+        const timestamp = new Date(job.ts).toLocaleString();
+        const duration = job.duration_ms ? `${job.duration_ms}ms` : 'N/A';
+        const statusColor = getStatusColor(job.status);
+        const inputPreview = job.input_json ? truncateText(job.input_json, 50) : 'N/A';
+        const outputPreview = job.output_text ? truncateText(job.output_text, 100) : 'N/A';
+        
+        html += '<tr style="border-bottom: 1px solid #eee;">';
+        html += `<td style="padding: 0.5rem;">${job.id}</td>`;
+        html += `<td style="padding: 0.5rem;">${escapeHtml(job.type)}</td>`;
+        html += `<td style="padding: 0.5rem;"><span style="color: ${statusColor};">${escapeHtml(job.status)}</span></td>`;
+        html += `<td style="padding: 0.5rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(job.input_json || '')}">${escapeHtml(inputPreview)}</td>`;
+        html += `<td style="padding: 0.5rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(job.output_text || '')}">${escapeHtml(outputPreview)}</td>`;
+        html += `<td style="padding: 0.5rem;">${duration}</td>`;
+        html += `<td style="padding: 0.5rem;">${timestamp}</td>`;
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    html += `<div style="margin-top: 1rem; text-align: right; color: #666;">Showing ${data.jobs.length} of ${data.total} jobs</div>`;
+    
+    document.getElementById('jobsContainer').innerHTML = html;
+}
+
+// Get status color function
+function getStatusColor(status) {
+    switch (status.toLowerCase()) {
+        case 'completed':
+        case 'success':
+            return '#28a745';
+        case 'failed':
+        case 'error':
+            return '#dc3545';
+        case 'running':
+        case 'processing':
+            return '#ffc107';
+        case 'pending':
+            return '#6c757d';
+        default:
+            return '#007bff';
+    }
+}
+
+// Truncate text function
+function truncateText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+// HTML escape function
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load initial jobs
+loadJobs();
+
+// Auto-refresh every 30 seconds
+setInterval(loadJobs, 30000);
+</script>
+
+{% endblock %}

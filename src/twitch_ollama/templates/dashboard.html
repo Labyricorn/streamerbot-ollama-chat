@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="status">
+    <p>Connected: <strong>{{ status.connected }}</strong></p>
+    <p>Model: <strong>{{ status.model }}</strong></p>
+    <p>Queue Depth: <strong>{{ status.queue_depth }}</strong></p>
+</div>
+{% endblock %}

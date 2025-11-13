@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Twitch Ollama Assistant{% endblock %}</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; }
+        nav a { margin-right: 1rem; }
+        .status { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+<nav>
+    <a href="/admin/">Dashboard</a>
+    <a href="/admin/config">Config</a>
+    <a href="/admin/logs">Logs</a>
+    <a href="/admin/jobs">Jobs</a>
+    <a href="/admin/files">Files</a>
+    <form action="/admin/logout" method="post" style="display:inline">
+        <button type="submit">Logout</button>
+    </form>
+</nav>
+<hr>
+{% block content %}{% endblock %}
+</body>
+</html>

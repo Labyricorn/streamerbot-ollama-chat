@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Chat Logs - Twitch Ollama Assistant{% endblock %}
+
+{% block content %}
+<h1>Chat Logs</h1>
+
+<!-- Search and Filter Section -->
+<div style="border: 1px solid #ccc; padding: 1rem; margin-bottom: 2rem;">
+    <h2>Search and Filter</h2>
+    <form id="searchForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label for="searchInput">Search:</label>
+                <input type="text" id="searchInput" placeholder="Search in user or message..." style="width: 100%;">
+            </div>
+            <div>
+                <label for="channelInput">Channel:</label>
+                <input type="text" id="channelInput" placeholder="Filter by channel..." style="width: 100%;">
+            </div>
+            <div>
+                <label for="userInput">User:</label>
+                <input type="text" id="userInput" placeholder="Filter by user..." style="width: 100%;">
+            </div>
+            <div>
+                <label for="roleInput">Role:</label>
+                <input type="text" id="roleInput" placeholder="Filter by role..." style="width: 100%;">
+            </div>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button type="submit">Search</button>
+            <button type="button" onclick="clearFilters()">Clear</button>
+            <div style="margin-left: auto;">
+                <button type="button" onclick="exportCSV()" style="margin-right: 0.5rem;">Export CSV</button>
+                <button type="button" onclick="exportJSON()">Export JSON</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Logs List -->
+<div id="logsContainer">
+    <div style="text-align: center; padding: 2rem;">
+        <p>Loading chat logs...</p>
+    </div>
+</div>
+
+<!-- Pagination -->
+<div id="pagination" style="margin-top: 2rem; text-align: center;"></div>
+
+<script>
+let currentPage = 1;
+const perPage = 50;
+
+// Load logs function
+async function loadLogs(page = 1) {
+    currentPage = page;
+    
+    // Get filter values
+    const search = document.getElementById('searchInput').value;
+    const channel = document.getElementById('channelInput').value;
+    const user = document.getElementById('userInput').value;
+    const role = document.getElementById('roleInput').value;
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+        page: page,
+        per_page: perPage
+    });
+    
+    if (search) params.append('search', search);
+    if (channel) params.append('channel', channel);
+    if (user) params.append('user', user);
+    if (role) params.append('role', role);
+    
+    try {
+        const response = await fetch(`/api/logs?${params}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayLogs(data);
+            displayPagination(data);
+        } else {
+            document.getElementById('logsContainer').innerHTML = 
+                `<div style="text-align: center; color: red; padding: 2rem;">
+                    Error loading logs: ${data.detail || 'Unknown error'}
+                </div>`;
+        }
+    } catch (error) {
+        document.getElementById('logsContainer').innerHTML = 
+            `<div style="text-align: center; color: red; padding: 2rem;">
+                Error loading logs: ${error.message}
+            </div>`;
+    }
+}
+
+// Display logs function
+function displayLogs(data) {
+    if (!data.messages || data.messages.length === 0) {
+        document.getElementById('logsContainer').innerHTML = 
+            '<div style="text-align: center; padding: 2rem;">No chat logs found.</div>';
+        return;
+    }
+    
+    let html = '<table style="width: 100%; border-collapse: collapse;">';
+    html += '<thead><tr style="border-bottom: 2px solid #ccc;">';
+    html += '<th style="text-align: left; padding: 0.5rem;">ID</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Channel</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">User</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Role</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Message</th>';
+    html += '<th style="text-align: left; padding: 0.5rem;">Timestamp</th>';
+    html += '</tr></thead><tbody>';
+    
+    data.messages.forEach(msg => {
+        const timestamp = new Date(msg.ts).toLocaleString();
+        html += '<tr style="border-bottom: 1px solid #eee;">';
+        html += `<td style="padding: 0.5rem;">${msg.id}</td>`;
+        html += `<td style="padding: 0.5rem;">${escapeHtml(msg.channel)}</td>`;
+        html += `<td style="padding: 0.5rem;">${escapeHtml(msg.user)}</td>`;
+        html += `<td style="padding: 0.5rem;">${escapeHtml(msg.role)}</td>`;
+        html += `<td style="padding: 0.5rem; max-width: 400px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(msg.text)}</td>`;
+        html += `<td style="padding: 0.5rem;">${timestamp}</td>`;
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    html += `<div style="margin-top: 1rem; text-align: right; color: #666;">Showing ${data.messages.length} of ${data.total} messages</div>`;
+    
+    document.getElementById('logsContainer').innerHTML = html;
+}
+
+// Display pagination function
+function displayPagination(data) {
+    if (data.total_pages <= 1) {
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
+    
+    let html = '<div style="display: inline-block;">';
+    
+    // Previous button
+    if (data.page > 1) {
+        html += `<button onclick="loadLogs(${data.page - 1})" style="margin-right: 0.5rem;">Previous</button>`;
+    }
+    
+    // Page numbers
+    const startPage = Math.max(1, data.page - 2);
+    const endPage = Math.min(data.total_pages, data.page + 2);
+    
+    if (startPage > 1) {
+        html += `<button onclick="loadLogs(1)">1</button>`;
+        if (startPage > 2) {
+            html += '<span style="margin: 0 0.5rem;">...</span>';
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const style = i === data.page ? 'background-color: #007bff; color: white;' : '';
+        html += `<button onclick="loadLogs(${i})" style="${style} margin: 0 0.25rem;">${i}</button>`;
+    }
+    
+    if (endPage < data.total_pages) {
+        if (endPage < data.total_pages - 1) {
+            html += '<span style="margin: 0 0.5rem;">...</span>';
+        }
+        html += `<button onclick="loadLogs(${data.total_pages})">${data.total_pages}</button>`;
+    }
+    
+    // Next button
+    if (data.page < data.total_pages) {
+        html += `<button onclick="loadLogs(${data.page + 1})" style="margin-left: 0.5rem;">Next</button>`;
+    }
+    
+    html += '</div>';
+    
+    document.getElementById('pagination').innerHTML = html;
+}
+
+// Clear filters function
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('channelInput').value = '';
+    document.getElementById('userInput').value = '';
+    document.getElementById('roleInput').value = '';
+    loadLogs(1);
+}
+
+// Export functions
+function exportCSV() {
+    const search = document.getElementById('searchInput').value;
+    const channel = document.getElementById('channelInput').value;
+    const user = document.getElementById('userInput').value;
+    const role = document.getElementById('roleInput').value;
+    
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (channel) params.append('channel', channel);
+    if (user) params.append('user', user);
+    if (role) params.append('role', role);
+    
+    window.location.href = `/api/logs/export/csv?${params}`;
+}
+
+function exportJSON() {
+    const search = document.getElementById('searchInput').value;
+    const channel = document.getElementById('channelInput').value;
+    const user = document.getElementById('userInput').value;
+    const role = document.getElementById('roleInput').value;
+    
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (channel) params.append('channel', channel);
+    if (user) params.append('user', user);
+    if (role) params.append('role', role);
+    
+    window.location.href = `/api/logs/export/json?${params}`;
+}
+
+// HTML escape function
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Event listeners
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    loadLogs(1);
+});
+
+// Load initial logs
+loadLogs(1);
+</script>
+
+{% endblock %}

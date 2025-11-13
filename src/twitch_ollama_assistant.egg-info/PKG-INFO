@@ -1,0 +1,61 @@
+Metadata-Version: 2.4
+Name: twitch-ollama-assistant
+Version: 0.1.0
+Summary: Twitch chat assistant backed by local Ollama
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.29
+Requires-Dist: jinja2>=3.1
+Requires-Dist: twitchio>=2.10
+Requires-Dist: httpx>=0.27
+Requires-Dist: pydantic>=2.7
+Requires-Dist: aiofiles>=23.2
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: itsdangerous>=2.2
+Requires-Dist: pydantic-settings>=2.2
+Requires-Dist: structlog>=24.1
+Requires-Dist: tiktoken>=0.6
+Requires-Dist: sqlalchemy[asyncio]>=2.0
+Requires-Dist: aiosqlite>=0.20
+Provides-Extra: dev
+Requires-Dist: pytest>=8.1; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"
+Requires-Dist: mypy>=1.9; extra == "dev"
+
+# Twitch Ollama Assistant
+
+Connect your Twitch channel to a local Ollama LLM instance with an admin web UI for configuration, chat logging, and file-based generation.
+
+## Quick Start
+
+1. Install dependencies:
+   ```bash
+   pip install -e .[dev]
+   ```
+
+2. Create a `.env` file:
+   ```
+   TWITCH_OAUTH_TOKEN=oauth:your_token
+   TWITCH_CHANNEL=your_channel
+   ADMIN_PASSWORD=admin123
+   OLLAMA_BASE_URL=http://localhost:11434
+   ```
+
+3. Run:
+   ```bash
+   python -m twitch_ollama.main
+   ```
+
+4. Open http://localhost:8000/admin to configure prompts and models.
+
+## Development
+
+- Lint: `ruff check src tests`
+- Typecheck: `mypy src`
+- Test: `pytest`
+
+## License
+
+MIT
