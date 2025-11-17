@@ -33,3 +33,6 @@ Connect your Twitch channel to a local Ollama LLM instance with an admin web UI 
 ## License
 
 MIT
+
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V21MD235)
